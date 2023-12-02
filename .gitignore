@@ -5,3 +5,5 @@ exercises/day03/carlos/Day03
 /.classpath
 /.project
 /.settings/
+/.idea/
+/out/
