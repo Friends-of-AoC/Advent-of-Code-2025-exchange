@@ -141,22 +141,30 @@ public class Y23Day08 {
 				lastTick = tick;
 				int oldTick = previousNodesAtTick.get(nodeAtIdx);
 				circleLength = lastTick - oldTick;
-				System.out.println("FOUND CIRCLE "+id+": "+circleLength);
+				System.out.println("FOUND CIRCLE "+id+" at "+nodeName+",idx="+moveIndex+" "+": "+circleLength);
 				return true;
 			}
 			previousNodesAtTick.put(nodeAtIdx, tick);
 			return false;
 		}
-		public void printZTicks() {
+		public void printZTicks(Map<String, Node> nodes) {
 			List<String> circleNodeNames = previousNodesAtTick.keySet().stream().map(nami->nami.nodeName).toList();
-			int firstCircleTick = lastTick - circleLength + 1;
-			System.out.print("CIRCLE "+id+": zIndex= n*"+circleLength+"+[");
+			int firstCircleTick = lastTick - circleLength;
+			System.out.println();
+			System.out.println("CIRCLE "+id+": Node: "+circleNodeNames.get(firstCircleTick)+", firstCircleTick: "+firstCircleTick+", lastCircleTick: "+(lastTick-1));
+			System.out.print("  zIndex= n*"+circleLength+"+[");
 			for (int i=firstCircleTick; i<lastTick; i++) {
 				if (circleNodeNames.get(i).endsWith("Z")) {
 					System.out.print((i%circleLength)+",");
 				}
 			}
 			System.out.println("]");
+			for (int i=0; i<5; i++) {
+				System.out.println("    "+i+": "+nodes.get(circleNodeNames.get(i)));	
+			}
+			for (int i=circleNodeNames.size()-5; i<circleNodeNames.size(); i++) {
+				System.out.println(i+": "+nodes.get(circleNodeNames.get(i)));	
+			}
 		}
 	}
 	
@@ -221,7 +229,7 @@ public class Y23Day08 {
 			List<Long> circleLengths = new ArrayList<>(); 
 			for (CircleDetector circleDetector:circleDetectors) {
 				circleLengths.add((long)circleDetector.circleLength);
-				circleDetector.printZTicks();
+				circleDetector.printZTicks(nodes);
 			}
 			return kgv(circleLengths);
 		}
@@ -241,7 +249,7 @@ public class Y23Day08 {
 		}
 	}
 
-	
+	// https://www.programmieren-ist-einfach.de/Java/F009.html
     public static long ggT(long a, long b) {
         // Die Funktion ggT berechnet den größten gemeinsamen Teiler zweier Zahlen a und b.
         // Die Zwischenergebnisse und das Endergebnis der Funktion ggT werden in einer Variable gespeichert. Dafür wird die Variable resultat deklariert.
@@ -253,9 +261,10 @@ public class Y23Day08 {
         } else {
             resultat = ggT(b % a, a);
         }
-        
         return resultat;
-    }	
+    }
+    
+	// https://www.programmieren-ist-einfach.de/Java/F009.html
     public static long kgV(long a, long b) {
         // Die Funktion kgV soll das kleinste gemeinsame Vielfach zweier Zahlen a und b berechnen. Die zwei Zahlen wurden als Argument an die kgV Funktion übergeben.
         // Um das Ergebnis zu speichern, wird in einer Variable gespeichert. Dafür wird die Variable resultat deklariert.
@@ -271,7 +280,7 @@ public class Y23Day08 {
 	public static void mainPart1(String inputFile) {
 		World world = new World();
 		for (InputData data:new InputProcessor(inputFile)) {
-			System.out.println(data);
+//			System.out.println(data);
 			if (data.isMovements()) {
 				world.setMovements(data.movements);
 			}
@@ -289,7 +298,7 @@ public class Y23Day08 {
 	public static void mainPart2(String inputFile) {
 		World2 world2 = new World2();
 		for (InputData data:new InputProcessor(inputFile)) {
-			System.out.println(data);
+//			System.out.println(data);
 			if (data.isMovements()) {
 				world2.setMovements(data.movements);
 			}
@@ -311,9 +320,9 @@ public class Y23Day08 {
 
 	public static void main(String[] args) throws FileNotFoundException {
 		System.out.println("--- PART I ---");
-		mainPart1("exercises/day08/Feri/input-example.txt");
+//		mainPart1("exercises/day08/Feri/input-example.txt");
 //		mainPart1("exercises/day08/Feri/input-example-2.txt");
-//		mainPart1("exercises/day08/Feri/input.txt");               
+		mainPart1("exercises/day08/Feri/input.txt");               
 		System.out.println("---------------");                           
 		System.out.println("--- PART II ---");
 //		mainPart2("exercises/day08/Feri/input-example-3.txt");
