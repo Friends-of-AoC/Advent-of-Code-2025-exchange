@@ -2,7 +2,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -66,6 +68,7 @@ public class Y23Day14 {
 		List<String> rows;
 		int maxX;
 		int maxY;
+		long ticks;
 		public World() {
 			rows = new ArrayList<>();
 		}
@@ -73,6 +76,7 @@ public class Y23Day14 {
 			maxY = rows.size();
 			maxX = rows.get(0).length();
 			field = new char[maxY][];
+			ticks = 0;
 			for (int y=0; y<maxY; y++) {
 				field[y] = rows.get(y).toCharArray();
 			}
@@ -81,15 +85,27 @@ public class Y23Day14 {
 			rows.add(row);
 		}
 		public void tiltNorth() {
+			tilt(0, -1);
+		}
+		public void tiltWest() {
+			tilt(-1, 0);
+		}
+		public void tiltSouth() {
+			tilt(0, +1);
+		}
+		public void tiltEast() {
+			tilt(+1, 0);
+		}
+		public void tilt(int dx, int dy) {
 			boolean changed = true;
 			while (changed) {
 				changed = false;
 				for (int y=0; y<maxY; y++) {
 					for (int x=0; x<maxX; x++) {
-						if ((get(x, y)=='O') && (get(x, y-1) == '.')) {
+						if ((get(x, y)=='O') && (get(x+dx, y+dy) == '.')) {
 							changed = true;
 							set(x,y,'.');
-							set(x,y-1,'O');
+							set(x+dx,y+dy,'O');
 						}
 					}
 				}
@@ -122,6 +138,13 @@ public class Y23Day14 {
 			}
 			return result.toString();
 		}
+		public void tick() {
+			ticks++;
+			tiltNorth();
+			tiltWest();
+			tiltSouth();
+			tiltEast();
+		}
 	}
 
 	public static void mainPart1(String inputFile) {
@@ -137,9 +160,60 @@ public class Y23Day14 {
 		System.out.println(world);
 		System.out.println("LOAD: "+world.countLoad());
 	}
+
 	
+	public static class CircleDetector {
+		Map<String, Long> previousWorldsAtTick;
+		long circleLength;
+		long lastTick;
+		public CircleDetector(World world) {
+			this.previousWorldsAtTick = new LinkedHashMap<>();
+			this.circleLength = 0;
+			detectCircle(world);
+		}
+		public boolean circleDetected() {
+			return circleLength != 0;
+		}
+		public boolean detectCircle(World world) {
+			if (circleDetected()) {
+				return true;
+			}
+			String worldString = world.toString();
+			long tick = world.ticks;
+			if (previousWorldsAtTick.containsKey(worldString)) {
+				lastTick = tick;
+				long oldTick = previousWorldsAtTick.get(worldString);
+				circleLength = lastTick - oldTick;
+				System.out.println("FOUND CIRCLE starting at tick "+oldTick+" with length "+circleLength);
+				return true;
+			}
+			previousWorldsAtTick.put(worldString, tick);
+			return false;
+		}
+	}
+
 	
 	public static void mainPart2(String inputFile) {
+		World world = new World();
+		for (InputData data:new InputProcessor(inputFile)) {
+			System.out.println(data);
+			world.addRow(data.row);
+		}
+		System.out.println("---");
+		world.init();
+		CircleDetector circleDetector = new CircleDetector(world);
+		while (!circleDetector.circleDetected()) {
+			world.tick();
+			circleDetector.detectCircle(world);
+		}
+		long targetTick = 1000000000L;
+		long circleLength = circleDetector.circleLength;
+		long targetIndex = targetTick % circleLength;
+		while ((world.ticks%circleLength) != targetIndex) {
+			world.tick();
+		}
+		System.out.println(world);
+		System.out.println("LOAD: "+world.countLoad());
 	}
 
 
@@ -149,8 +223,8 @@ public class Y23Day14 {
 		mainPart1("exercises/day14/Feri/input.txt");               
 		System.out.println("---------------");                           
 		System.out.println("--- PART II ---");
-		mainPart2("exercises/day14/Feri/input-example.txt");
-//		mainPart2("exercises/day14/Feri/input.txt");              
+//		mainPart2("exercises/day14/Feri/input-example.txt");
+		mainPart2("exercises/day14/Feri/input.txt");              
 		System.out.println("---------------");    //
 	}
 	
