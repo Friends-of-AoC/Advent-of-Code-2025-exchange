@@ -123,7 +123,10 @@ public class Y23Day16 {
 			}
 		}
 		public void addBeam(int x, int y, int dir) {
-			beams.add(new Beam(new Pos(x, y), dir));
+			addBeam(new Beam(new Pos(x, y), dir));
+		}
+		public void addBeam(Beam beam) {
+			beams.add(beam);
 		}
 		private List<Beam> follow(Beam beam) {
 			List<Beam> result = new ArrayList<>();
@@ -293,6 +296,71 @@ public class Y23Day16 {
 
 
 	public static void mainPart2(String inputFile) {
+		output = new Y23GUIOutput16("2023 day 16 Part II", true);
+		World world = new World();
+		for (InputData data:new InputProcessor(inputFile)) {
+			world.addRow(data.row);
+		}
+		world.init();
+		Beam bestStartBeam = null;
+		long maxEnergized = 0;
+		for (int x=0; x<world.maxX; x++) {
+			world.init();
+			Beam startBeam = new Beam(new Pos(x, 0), DIR_SOUTH); 
+			world.addBeam(startBeam);
+			while (world.hasBeams()) {
+				world.tick();
+			}
+			if (world.countEnergized() > maxEnergized) {
+				bestStartBeam = startBeam;
+				maxEnergized = world.countEnergized();
+			}
+		}
+		for (int x=0; x<world.maxX; x++) {
+			world.init();
+			Beam startBeam = new Beam(new Pos(x, world.maxY-1), DIR_NORTH); 
+			world.addBeam(startBeam);
+			while (world.hasBeams()) {
+				world.tick();
+			}
+			if (world.countEnergized() > maxEnergized) {
+				bestStartBeam = startBeam;
+				maxEnergized = world.countEnergized();
+			}
+		}
+		for (int y=0; y<world.maxY; y++) {
+			world.init();
+			Beam startBeam = new Beam(new Pos(0, y), DIR_EAST); 
+			world.addBeam(startBeam);
+			while (world.hasBeams()) {
+				world.tick();
+			}
+			if (world.countEnergized() > maxEnergized) {
+				bestStartBeam = startBeam;
+				maxEnergized = world.countEnergized();
+			}
+		}
+		for (int y=0; y<world.maxY; y++) {
+			world.init();
+			Beam startBeam = new Beam(new Pos(world.maxX-1, y), DIR_WEST); 
+			world.addBeam(startBeam);
+			while (world.hasBeams()) {
+				world.tick();
+			}
+			if (world.countEnergized() > maxEnergized) {
+				bestStartBeam = startBeam;
+				maxEnergized = world.countEnergized();
+			}
+		}
+		System.out.println("MAX ENERGIZED: "+maxEnergized);	
+		world.init();
+		world.addBeam(bestStartBeam);
+		world.show();
+		while (world.hasBeams()) {
+			world.tick();
+			world.show();
+		}
+		System.out.println(world.countEnergized());
 	}
 
 
@@ -302,8 +370,8 @@ public class Y23Day16 {
 		mainPart1("exercises/day16/Feri/input.txt");               
 		System.out.println("---------------");                           
 		System.out.println("--- PART II ---");
-		mainPart2("exercises/day16/Feri/input-example.txt");
-//		mainPart2("exercises/day16/Feri/input.txt");
+//		mainPart2("exercises/day16/Feri/input-example.txt");
+		mainPart2("exercises/day16/Feri/input.txt");
 		System.out.println("---------------");    
 	}
 	
