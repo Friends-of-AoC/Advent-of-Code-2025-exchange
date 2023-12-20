@@ -247,7 +247,7 @@ public class Y23Day20 {
 	public static void mainPart1(String inputFile) {
 		World world = new World();
 		for (InputData data:new InputProcessor(inputFile)) {
-			System.out.println(data);
+//			System.out.println(data);
 			world.addModule(data.type, data.name, data.outputs);
 		}
 		System.out.println(world.toString());
@@ -302,7 +302,7 @@ public class Y23Day20 {
 	public static void mainPart2(String inputFile) {
 		World world = new World();
 		for (InputData data:new InputProcessor(inputFile)) {
-			System.out.println(data);
+//			System.out.println(data);
 			world.addModule(data.type, data.name, data.outputs);
 		}
 		System.out.println(world.toString());
