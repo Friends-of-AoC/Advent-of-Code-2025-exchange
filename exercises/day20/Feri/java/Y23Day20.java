@@ -321,8 +321,8 @@ public class Y23Day20 {
 		System.out.println("--- PART I ---");
 //		mainPart1("exercises/day20/Feri/input-example.txt");
 //		mainPart1("exercises/day20/Feri/input-example-2.txt");
-//		mainPart1("exercises/day20/Feri/input.txt");               
-//		mainPart1("exercises/day20/Feri/input-sorted.txt");               
+		mainPart1("exercises/day20/Feri/input.txt");               
+		mainPart1("exercises/day20/Feri/input-sorted.txt");               
 		System.out.println("---------------");                           
 		System.out.println("--- PART II ---");
 		System.out.println("--- PART I ---");
