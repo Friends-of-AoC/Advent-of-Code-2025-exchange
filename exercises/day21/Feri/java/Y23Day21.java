@@ -226,6 +226,23 @@ public class Y23Day21 {
 		System.out.println("#POSITIONS: "+world.currentPositions.size());
 	}
 
+	public static void mainPart2gui(String inputFile) {
+		output = new Y23GUIOutput21("2023 day 21 Part II", true);
+		World world = new World(true);
+		for (InputData data:new InputProcessor(inputFile)) {
+//			System.out.println(data);
+			world.addRow(data.row);
+		}
+		world.init();
+		world.show(2);
+		
+		for (int i=0; i<5*world.maxX; i++) {
+			world.tick();
+			world.show(5);
+		}
+	}
+
+	
 	public static void mainPart2(String inputFile, long targetTick) {
 //		output = new Y23GUIOutput21("2023 day 21 Part II", true);
 		World world = new World(true);
@@ -319,8 +336,10 @@ public class Y23Day21 {
 //		mainPart1("exercises/day21/Feri/input.txt");               
 		System.out.println("---------------");                           
 		System.out.println("--- PART II ---");
+//		mainPart2gui("exercises/day21/Feri/input-example.txt");
+		mainPart2gui("exercises/day21/Feri/input.txt");
 //		mainPart2("exercises/day21/Feri/input-example.txt", 5000);
-		mainPart2("exercises/day21/Feri/input.txt", 26501365);
+//		mainPart2("exercises/day21/Feri/input.txt", 26501365);
 		System.out.println("---------------");    
 	}
 	
