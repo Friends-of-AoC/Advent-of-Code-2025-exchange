@@ -122,6 +122,8 @@ public class Y23Day21 {
 		int maxY;
 		Pos startPos;
 		Set<Pos> currentPositions;
+		Set<Pos> evenHistoryPositions;
+		Set<Pos> oddHistoryPositions;
 		int ticks;
 		boolean infinite;
 		public World(boolean infinite) {
@@ -147,7 +149,15 @@ public class Y23Day21 {
 				}
 			}
 			this.currentPositions = new LinkedHashSet<>();
+			this.evenHistoryPositions = new LinkedHashSet<>();
+			this.oddHistoryPositions = new LinkedHashSet<>();
 			currentPositions.add(startPos);
+		}
+		private boolean isEvenTick() {
+			return ticks%2 == 0;
+		}
+		private boolean isOddTick() {
+			return ticks%2 == 1;
 		}
 		private char get(Pos pos) {
 			return get(pos.x, pos.y);
@@ -165,23 +175,35 @@ public class Y23Day21 {
 			return field[y][x];
 		}		
 		public void tick() {
-			ticks++;
+			Set<Pos> checkNextHistoryPositions;
+			if (isEvenTick()) {
+				evenHistoryPositions.addAll(currentPositions);
+				checkNextHistoryPositions = oddHistoryPositions; 
+			}
+			else {
+				oddHistoryPositions.addAll(currentPositions);
+				checkNextHistoryPositions = evenHistoryPositions; 
+			}
 			Set<Pos> nextPositions = new LinkedHashSet<>();
 			for (Pos pos:currentPositions) {
 				for (Pos neighbour:pos.getNeighbours()) {
 					if (get(neighbour)=='.') {
-						nextPositions.add(neighbour);
+						if (!checkNextHistoryPositions.contains(neighbour)) {
+							nextPositions.add(neighbour);
+						}
 					}
 				}
 			}
 			currentPositions = nextPositions;
+			ticks++;
 		}
 		@Override public String toString() {
+			Set<Pos> historyPositions = isEvenTick() ? evenHistoryPositions : oddHistoryPositions;
 			StringBuilder result = new StringBuilder();
 			for (int y=0; y<maxY; y++) {
 				for (int x=0; x<maxX; x++) {
 					char c = get(x,y);
-					if (currentPositions.contains(new Pos(x,y))) {
+					if (currentPositions.contains(new Pos(x,y)) || historyPositions.contains(new Pos(x,y))) {
 						c = 'O';
 					}
 					result.append(c);
@@ -191,11 +213,12 @@ public class Y23Day21 {
 			return result.toString();
 		}
 		public String toString(int size) {
+			Set<Pos> historyPositions = isEvenTick() ? evenHistoryPositions : oddHistoryPositions;
 			StringBuilder result = new StringBuilder();
 			for (int y=-maxY*(size-1)+1; y<maxY*size; y++) {
 				for (int x=-maxX*(size-1)+1; x<maxX*size; x++) {
 					char c = get(x,y);
-					if (currentPositions.contains(new Pos(x,y))) {
+					if (currentPositions.contains(new Pos(x,y)) || historyPositions.contains(new Pos(x,y))) {
 						c = 'O';
 					}
 					result.append(c);
@@ -206,6 +229,16 @@ public class Y23Day21 {
 		}
 		public void show(int size) {
 			output.addStep("TICKS: "+ticks+"\n"+toString(size));
+		}
+		public int getSize() {
+			int result = currentPositions.size();
+			if (isEvenTick()) {
+				result += evenHistoryPositions.size();
+			}
+			else {
+				result += oddHistoryPositions.size();
+			}
+			return result;
 		}
 	}
 
@@ -224,7 +257,7 @@ public class Y23Day21 {
 		}
 		System.out.println("TICK: "+world.ticks);
 		System.out.println(world);
-		System.out.println("#POSITIONS: "+world.currentPositions.size());
+		System.out.println("#POSITIONS: "+world.getSize());
 	}
 
 	public static void mainPart2gui(String inputFile) {
@@ -260,14 +293,14 @@ public class Y23Day21 {
 		for (int i=0; i<offset; i++) {
 			world.tick();
 		}
-		System.out.println("offset "+offset+": "+world.currentPositions.size());
+		System.out.println("offset "+offset+": "+world.getSize());
 		
 //		System.out.println(world);
 		for (int n=0; n<startIterations; n++) {
 			for (int i=0; i<world.maxX; i++) {
 				world.tick();
 			}
-			System.out.println("iteration "+(n+1)+" (tick "+world.ticks+"): "+world.currentPositions.size());
+			System.out.println("iteration "+(n+1)+" (tick "+world.ticks+"): "+world.getSize());
 		}
 		
 		long x1 = startIterations;
@@ -281,25 +314,25 @@ public class Y23Day21 {
 		System.out.println("f''(x)  = 2*a");
 		System.out.println("------------------");
 
-		long y1 = world.currentPositions.size();
+		long y1 = world.getSize();
 		System.out.println("f("+x1+")="+y1);
 
 		for (int i=0; i<1*world.maxX; i++) {
 			world.tick();
 		}
-		long y2 = world.currentPositions.size();
+		long y2 = world.getSize();
 		System.out.println("f("+x2+")="+y2);
 
 		for (int i=0; i<1*world.maxX; i++) {
 			world.tick();
 		}
-		long y3 = world.currentPositions.size();
+		long y3 = world.getSize();
 		System.out.println("f("+x3+")="+y3);
 
 		for (int i=0; i<1*world.maxX; i++) {
 			world.tick();
 		}
-		long y4 = world.currentPositions.size();
+		long y4 = world.getSize();
 		System.out.println("f("+x4+")="+y4+"      TICK="+world.ticks);
 		
 		long yd2 = y2-y1;
@@ -352,7 +385,9 @@ public class Y23Day21 {
 //		mainPart2gui("exercises/day21/Feri/input-example.txt");
 //		mainPart2gui("exercises/day21/Feri/input.txt");
 //		mainPart2("exercises/day21/Feri/input-example.txt", 5000, 3);
-		mainPart2("exercises/day21/Feri/input.txt", 26501365,1);
+		StopWatch12.run("Day 21 Part II", () -> {
+			mainPart2("exercises/day21/Feri/input.txt", 26501365,0);
+		});
 		System.out.println("---------------");    
 	}
 	
