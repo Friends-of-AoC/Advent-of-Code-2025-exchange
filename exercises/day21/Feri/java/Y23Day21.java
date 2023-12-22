@@ -215,8 +215,8 @@ public class Y23Day21 {
 		public String toString(int size) {
 			Set<Pos> historyPositions = isEvenTick() ? evenHistoryPositions : oddHistoryPositions;
 			StringBuilder result = new StringBuilder();
-			for (int y=-maxY*(size-1)+1; y<maxY*size; y++) {
-				for (int x=-maxX*(size-1)+1; x<maxX*size; x++) {
+			for (int y=-maxY*(size-1); y<maxY*size; y++) {
+				for (int x=-maxX*(size-1); x<maxX*size; x++) {
 					char c = get(x,y);
 					if (currentPositions.contains(new Pos(x,y)) || historyPositions.contains(new Pos(x,y))) {
 						c = 'O';
@@ -244,16 +244,21 @@ public class Y23Day21 {
 
 	public static void mainPart1(String inputFile) {
 		output = new Y23GUIOutput21("2023 day 21 Part I", true);
-		World world = new World(false);
+		World world = new World(true);
 		for (InputData data:new InputProcessor(inputFile)) {
 //			System.out.println(data);
 			world.addRow(data.row);
 		}
 		world.init();
 //		System.out.println(world);
-		for (int i=0; i<64; i++) {
+		for (int i=0; i<5000; i++) {
 			world.tick();
-			world.show(1);
+			System.out.println(world.ticks+" : "+ world.getSize());
+		}
+
+		for (int i=0; i<130+131; i++) {
+			world.tick();
+			world.show(2);
 		}
 		System.out.println("TICK: "+world.ticks);
 		System.out.println(world);
@@ -285,6 +290,23 @@ public class Y23Day21 {
 			world.addRow(data.row);
 		}
 		world.init();
+
+		
+//		for (int i=0; i<5000; i++) {
+//			world.tick();
+//			System.out.println(world.ticks+" : "+ world.getSize());
+//		}
+//		
+//		if (true) return;
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		
 		long iterations = targetTick / world.maxX;
 		long offset = targetTick - iterations*world.maxX;
@@ -379,15 +401,16 @@ public class Y23Day21 {
 	public static void main(String[] args) throws FileNotFoundException {
 		System.out.println("--- PART I ---");
 //		mainPart1("exercises/day21/Feri/input-example.txt");
-		mainPart1("exercises/day21/Feri/input.txt");               
+//		mainPart1("exercises/day21/Feri/input.txt");               
 		System.out.println("---------------");                           
 		System.out.println("--- PART II ---");
 //		mainPart2gui("exercises/day21/Feri/input-example.txt");
 //		mainPart2gui("exercises/day21/Feri/input.txt");
 //		mainPart2("exercises/day21/Feri/input-example.txt", 5000, 3);
-		StopWatch12.run("Day 21 Part II", () -> {
-			mainPart2("exercises/day21/Feri/input.txt", 26501365,0);
-		});
+//		StopWatch12.run("Day 21 Part II", () -> {
+//		mainPart2("exercises/day21/Feri/input.txt", 26501365,0);
+//		});
+		mainPart2("exercises/day21/Feri/input.txt", 3000,0);
 		System.out.println("---------------");    
 	}
 	
