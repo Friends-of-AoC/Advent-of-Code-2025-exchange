@@ -1,48 +1,17 @@
 .DS_Store
 /.vscode/
-/.idea/
 exercises/day03/carlos/Day03
 /bin/
 /.classpath
 /.project
-/.pydevproject
 /.settings/
-
-# c++-Achim and visual studio gitignore
-# /.vs/ directory was causing issues
-/.vs/
-
-# gitignore for c++-Achim
-# Compiled Object files
-*.slo
-*.lo
-*.o
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-
-# Visual Studio Files
-Debug
-Release
-*.suo
-*.csproj.user
-*.vbproj.user
-ipch
-*sdf
-
-# eclipse pydev 
-/.pydevproject
-
-# give me some space to take experiment
-/DONOTCHECKIN/
-
-# Python Files
-__pycache__
+/.idea/
+/out/
+*.iml
+.idea
+out
+/.vs
 /exchange/day01/Dimitris Kostorrizos/Y25Day01/.vs
+/exchange/day01/Dimitris Kostorrizos/Y25Day01/bin/Debug/net10.0
+/exchange/day01/Dimitris Kostorrizos/Y25Day01/obj/Debug/net10.0
 /exchange/day01/Dimitris Kostorrizos/Y25Day01/obj
