@@ -76,7 +76,7 @@ static void print_step(FILE *str, uint64_t result, char *format, ...) {
 }
 #endif
 
-static void print(FILE *str, struct data *data, uint64_t result) {
+static void print(FILE *str, struct data *data, uint64_t result, uint64_t add_result) {
 	if (result) {
 		fprintf(str, "%sresult=%"I64"u\n%s", STEP_HEADER, result, STEP_BODY);
 	} else {
@@ -85,6 +85,7 @@ static void print(FILE *str, struct data *data, uint64_t result) {
 	if (!do_print && !interactive) {
 		return;
 	}
+	fprintf(str, "Remove %"I64"u rolls of paper\n", add_result);
 	for (idx l = 0; l < data->line_count; ++l) {
 		fwrite(data->world + (l * data->line_len), 1, data->line_len, str);
 		fputc('\n', str);
@@ -111,10 +112,8 @@ static int count(struct data *data, idx l, idx c) {
 	return result;
 }
 
-const char* solve(const char *path) {
-	struct data *data = read_data(path);
+static uint64_t mark_removable(struct data *data) {
 	uint64_t result = 0;
-	print(solution_out, data, result);
 	for (idx l = 0; l < data->line_count; ++l)
 		for (idx c = 0; c < data->line_len; ++c)
 			if (data->world[l * data->line_len + c] == '@'
@@ -122,7 +121,32 @@ const char* solve(const char *path) {
 				result++;
 				data->world[l * data->line_len + c] = 'x';
 			}
-	print(solution_out, data, result);
+	return result;
+}
+
+const char* solve(const char *path) {
+	struct data *data = read_data(path);
+	uint64_t result = 0;
+	print(solution_out, data, result, 0);
+	result = mark_removable(data);
+	print(solution_out, data, result, result);
+	if (part == 2) {
+		while (__LINE__) {
+			char *chr = data->world, *end = data->world
+					+ data->line_len * data->line_count;
+			while (136) {
+				chr = memchr(chr, 'x', end - chr);
+				if (!chr)
+					break;
+				*chr = '.';
+			}
+			uint64_t add_result = mark_removable(data);
+			print(solution_out, data, result, add_result);
+			if (!add_result)
+				break;
+			result += add_result;
+		}
+	}
 	free(data);
 	return u64toa(result);
 }
