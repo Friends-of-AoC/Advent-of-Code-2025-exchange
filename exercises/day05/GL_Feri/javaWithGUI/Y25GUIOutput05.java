@@ -28,7 +28,7 @@ import javax.swing.text.StyleContext;
 import javax.swing.text.StyledDocument;
 
 
-class Y25GUIOutput04 {
+class Y25GUIOutput05 {
 
 	@SuppressWarnings("serial") public static class MyCaret extends BasicCaret {
 		@Override public void install(JTextComponent c) { return; }
@@ -53,7 +53,7 @@ class Y25GUIOutput04 {
     
     Timer timer;
     
-    public Y25GUIOutput04(String title, boolean buffered) {
+    public Y25GUIOutput05(String title, boolean buffered) {
     	this.textListe = new ArrayList<>();
     	this.currentText = -1;
     	this.buffered = buffered;
@@ -195,8 +195,7 @@ class Y25GUIOutput04 {
     	addBackgroundStyle(Color.YELLOW, Color.BLACK,  "byellow", "bye", "b2");
     	addBackgroundStyle(Color.RED,    Color.WHITE,  "bred",    "bre", "b3");
     	addBackgroundStyle(Color.ORANGE, Color.BLACK,  "borange", "bor", "b4");
-    	addBackgroundStyle(Color.GREEN,  Color.BLACK,  "bgreen",  "bgr", "b5");
-	}
+    }
     
     private void appendToPane(JTextPane tp, String msg, AttributeSet aset) {
         StyledDocument sDoc = tp.getStyledDocument();
@@ -320,7 +319,7 @@ class Y25GUIOutput04 {
 
 
 	public static void main(String[] args) throws Exception {
-		Y25GUIOutput04 output = new Y25GUIOutput04("title", true);
+		Y25GUIOutput05 output = new Y25GUIOutput05("title", true);
 		output.addStep("Depending on the font size, the third line is longer or smaller than the upper two lines:\n\n"
 				+ "°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X°c0;X°c1;X\n"
 				+ "°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X°c0;X\n"
