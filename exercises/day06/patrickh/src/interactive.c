@@ -134,6 +134,8 @@ static void recalc_header_footer_sizes() {
 			p = np;
 		}
 	}
+	if (getenv("FORCE_HEAD_LINES"))
+		header_display_lines = atoi(getenv("FORCE_HEAD_LINES"));
 	char *p = memchr(world_data, ETX_C, world_data_size);
 	if (p) {
 		char *eot = memchr(p, EOT_C, world_data + world_data_size - p);

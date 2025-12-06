@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <math.h>
 #include <time.h>
 
 #include "color.h"
@@ -55,6 +56,7 @@ struct data {
 	size_t line_alloc;
 	char *lines2;
 	num *lines;
+	idx *column_begin;
 	_Bool *ops_multiply;
 	uint64_t *solutions;
 };
@@ -81,15 +83,67 @@ static void print_step(FILE *str, uint64_t result, char *format, ...) {
 }
 #endif
 
-static void print(FILE *str, struct data *data, uint64_t result) {
-	if (result) {
+static void print_space(FILE *str, uint64_t count) {
+	uint64_t val;
+	for (val = 0; val + INT_MAX < count; val += INT_MAX)
+		fprintf(str, "%*s", INT_MAX, "");
+	fprintf(str, "%*s", (int) (count - val), "");
+}
+
+static void print(FILE *str, struct data *data, uint64_t result, idx curi) {
+	if (result)
 		fprintf(str, "%sresult=%"I64"u\n%s", STEP_HEADER, result, STEP_BODY);
-	} else {
+	else
 		fputs(STEP_BODY, str);
-	}
-	if (!do_print && !interactive) {
+	if (!do_print && !interactive)
 		return;
+	uint64_t *add_col_len = calloc(data->column_count, sizeof(uint64_t));
+	for (idx c = 0; c + 1 < data->column_count && data->column_begin[c + 1];
+			++c) {
+		size_t min_len = log10(data->solutions[c]) + 2;
+		size_t cur_len = data->column_begin[c + 1] - data->column_begin[c];
+		if (cur_len < min_len)
+			add_col_len[c] = min_len - cur_len;
 	}
+	for (idx l = 0; l < data->line_count + 1; ++l) {
+		char *line_start = data->lines2 + l * data->line_length;
+		idx last_end = 0;
+		for (idx c = 0; c + 1 < data->column_count && data->column_begin[c + 1];
+				++c) {
+			idx next = data->column_begin[c + 1];
+			fwrite(line_start + last_end, next - last_end, 1, str);
+			print_space(str, add_col_len[c]);
+			last_end = next;
+		}
+		idx next = data->line_length;
+		if (curi != UINT64_MAX && part == 2 && l != data->line_count) {
+			if (curi < last_end)
+				abort();
+			fwrite(line_start + last_end, curi - last_end, 1, str);
+			fprintf(str, BOLD FC_GREEN"%c"RESET, (unsigned) line_start[curi]);
+			fwrite(line_start + curi + 1, data->line_length - curi - 1, 1, str);
+		} else if (part == 1 && curi == l) {
+			char *num_end;
+			strtoll(line_start + last_end, &num_end, 10);
+			fputs(BOLD FC_GREEN, str);
+			fwrite(line_start + last_end, num_end - line_start - last_end, 1, str);
+			fputs(RESET, str);
+			fwrite(num_end, line_start + next - num_end, 1, str);
+		} else
+			fwrite(line_start + last_end, next - last_end, 1, str);
+		fputc('\n', str);
+	}
+	idx pos = 0;
+	for (idx c = 0; c < data->column_count; ++c) {
+		pos += fprintf(str, "%"I64"u", data->solutions[c]);
+		idx next = data->column_begin[c + 1];
+		if (!next)
+			break;
+		print_space(str, add_col_len[c] + next - pos);
+		pos = next;
+	}
+	fputc('\n', str);
+	free(add_col_len);
 	fputs(interactive ? STEP_FINISHED : RESET, str);
 }
 
@@ -104,9 +158,13 @@ static num parse_num(struct data *data, idx ci) {
 				any_input = 1;
 				last_input = 1;
 			} else if (!last_input)
-				abort();
+				(fprintf(stderr, "chr=%02X, ci=%"I64"u, ll=%lu\n",
+						(unsigned) chr, ci, data->line_length), abort());
 			result = result * 10 + chr - '0';
-		} else
+		} else if (chr != ' ')
+			(fprintf(stderr, "chr=%02X, ci=%"I64"u, ll=%lu\n", (unsigned) chr,
+					ci, data->line_length), abort());
+		else
 			last_input = 0;
 	}
 	if (any_input)
@@ -118,62 +176,89 @@ const char* solve(const char *path) {
 	struct data *data = read_data(path);
 	uint64_t result = 0;
 	if (part == 1) {
-		for (idx c = 0; c < data->column_count; ++c) {
+		for (idx c = 0, ci = 0, nci = 0; c < data->column_count;
+				++c, ci = nci) {
+			int had_valid = 0;
+			for (; nci < data->line_length; nci++) {
+				if (parse_num(data, nci) == NUM_MAX) {
+					if (had_valid)
+						break;
+					++ci;
+					continue;
+				}
+				had_valid = 1;
+			}
+			data->column_begin[c] = ci;
 			uint64_t solution = data->ops_multiply[c];
 			for (idx l = 0; l < data->line_count; ++l) {
 				if (data->ops_multiply[c])
 					solution *= data->lines[l * data->column_count + c];
 				else
 					solution += data->lines[l * data->column_count + c];
+				data->solutions[c] = solution;
+				print(solution_out, data, result + solution, l);
 			}
 			result += solution;
 			data->solutions[c] = solution;
-			print(solution_out, data, result);
+			print(solution_out, data, result, UINT64_MAX);
 		}
 	} else {
-		for (idx cn = 0, ci = 0; cn < data->column_count; ++cn) {
+		idx ci = 0;
+		for (idx cn = 0; cn < data->column_count; ++cn) {
 			uint64_t solution = data->ops_multiply[cn];
 			int had_valid = 0;
-			for (; 119; ++ci) {
+			while (119) {
 				num num = parse_num(data, ci);
 				if (num == NUM_MAX) {
+					++ci;
 					if (had_valid)
 						break;
 					continue;
 				}
-				had_valid = 1;
+				if (!had_valid) {
+					had_valid = 1;
+					data->column_begin[cn] = ci;
+				}
 				if (data->ops_multiply[cn])
 					solution *= num;
 				else
 					solution += num;
+				data->solutions[cn] = solution;
+				print(solution_out, data, result + solution, ci);
+				if (++ci == data->line_length)
+					break;
 			}
 			result += solution;
 			data->solutions[cn] = solution;
-			print(solution_out, data, result);
+			print(solution_out, data, result, UINT64_MAX);
 		}
+		if (ci != data->line_length)
+			abort();
 	}
-	print(solution_out, data, result);
+	print(solution_out, data, result, UINT64_MAX);
 	free(data);
 	return u64toa(result);
 }
 
 static struct data* parse_line(struct data *data, char *line) {
-	for (; *line && isspace(*line); ++line)
-		;
-	if (!*line)
-		return data;
+	for (char *p = line; 171; ++p) {
+		if (!*p)
+			return data;
+		else if (!isspace(*p))
+			break;
+	}
+
 	if (!data) {
 		data = calloc(1, sizeof(struct data));
 	}
 	if (!data->column_count) {
 		char *p = line;
 		do {
-			char *end;
-			strtoll(p, &end, 10);
-			if (errno || p == end)
-				abort();
-			p = end;
 			for (; *p && isspace(*p); ++p)
+				;
+			if (!isdigit(*p))
+				break;
+			for (; *p && isdigit(*p); ++p)
 				;
 			data->column_count++;
 		} while (*p);
@@ -187,46 +272,47 @@ static struct data* parse_line(struct data *data, char *line) {
 	}
 	if (data->ops_multiply)
 		abort();
-	char *p = line;
+	char *p = line, *end = NULL;
+	idx lc = data->line_count;
 	if (*line != '*' && *line != '+') {
-		size_t ll = strlen(line);
-		if (ll > data->line_length) {
-			data->lines2 = reallocarray(data->lines2, data->line_alloc, ll);
-			for (int l = data->line_count; --l >= 0;) {
-				memmove(data->lines2 + l * ll,
-						data->lines2 + l * data->line_length,
-						data->line_length);
-				memset(data->lines2 + l * ll + data->line_length, ' ',
-						ll - data->line_length);
-			}
-			data->line_length = ll;
-		}
-		memcpy(data->lines2 + data->line_count * data->line_length, line, ll);
-		memset(data->lines2 + data->line_count * data->line_length + ll, ' ',
-				data->line_length - ll);
 		for (idx i = 0; i < data->column_count; ++i) {
-			char *end;
 			long long val = strtoll(p, &end, 10);
 			if (errno || p == end)
 				abort();
 			p = end;
-			for (; *p && isspace(*p); ++p)
-				;
 			if (val < 0 || val >= NUM_MAX)
 				abort();
 			data->lines[data->line_count * data->column_count + i] = val;
 		}
+		for (; *p && isspace(*p); ++p)
+			;
 		data->line_count++;
 	} else {
 		data->ops_multiply = malloc(data->column_count);
 		data->solutions = calloc(data->column_count, sizeof(uint64_t));
+		data->column_begin = calloc(data->column_count, sizeof(idx));
 		for (idx i = 0; i < data->column_count; ++i) {
 			data->ops_multiply[i] = *p == '*' ? 1 :
 									*p == '+' ? 0 : (abort(), 0);
+			end = p + 1;
 			for (++p; *p && isspace(*p); ++p)
 				;
 		}
 	}
+	size_t ll = end - line;
+	if (ll > data->line_length) {
+		data->lines2 = reallocarray(data->lines2, data->line_alloc, ll);
+		for (int l = lc; --l >= 0;) {
+			memmove(data->lines2 + l * ll, data->lines2 + l * data->line_length,
+					data->line_length);
+			memset(data->lines2 + l * ll + data->line_length, ' ',
+					ll - data->line_length);
+		}
+		data->line_length = ll;
+	}
+	memcpy(data->lines2 + lc * data->line_length, line, ll);
+	memset(data->lines2 + lc * data->line_length + ll, ' ',
+			data->line_length - ll);
 	if (*p)
 		abort();
 	return data;
