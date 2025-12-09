@@ -139,14 +139,15 @@ static void print(FILE *str, struct data *data, uint64_t result,
 			struct line2d *ld = lines + i;
 			if (ld->start.y == l) {
 				line[ld->start.x] = '#';
-				memset(line + ld->start.x + 1, 'X', ld->len - 2);
+				if (part == 2)
+					memset(line + ld->start.x + 1, 'X', ld->len - 2);
 				line[ld->start.x + ld->len - 1] = '#';
 			}
 		}
 		if (l % 1000 == 0 || line_count <= 1000) {
 			enum print_state {
-				ps_def, ps_green, ps_red, ps_mark
-			} ps = ps_def;
+				ps_none, ps_def, ps_green, ps_red, ps_mark
+			} ps = ps_none;
 			for (idx c = 0; c < line_len; c += (line_len > 1000 ? 1000 : 1)) {
 				if (line[c] == '#') {
 					if (ps != ps_red) {
@@ -167,23 +168,23 @@ static void print(FILE *str, struct data *data, uint64_t result,
 				} else if (line[c] == '.') {
 					if (ps != ps_def) {
 						ps = ps_def;
-						fputs(RESET, str);
+						fputs(FC_DARK_GRAY, str);
 					}
 				} else
 					abort();
 				fputc(line[c], str);
 			}
-			if (ps != ps_def)
-				fputs(RESET"\n", str);
-			else
-				fputc('\n', str);
+			fputs(RESET"\n", str);
 		}
 		for (idx i = 0; i < (data->pos_count >> 1); ++i) {
 			struct line2d *ld = lines + i;
 			if (ld->start.y == l) {
 				if (ld->len < 3)
 					abort();
-				if (lastline[ld->start.x + 1] == '.') {
+				if (part == 1) {
+					line[ld->start.x] = '.';
+					line[ld->start.x + ld->len - 1] = '.';
+				} else if (lastline[ld->start.x + 1] == '.') {
 					line[ld->start.x] = 'X';
 					line[ld->start.x + ld->len - 1] = 'X';
 				} else {
@@ -242,10 +243,6 @@ const char* solve(const char *path) {
 			struct pos2d endp = { minp.x > maxp.x ? minp.x : maxp.x,
 					minp.y > maxp.y ? minp.y : maxp.y };
 			if (part == 2) {
-				//(94654,50355) and (5556,67344) = 1513792010
-				if (p.x == 5556 && p.y == 50355
-						&& endp.x == 94654 && endp.y == 67344)
-					fputs("BREAK!\n", stderr);
 				_Bool is_inside = 0;
 				for (idx i = 0; i < (data->pos_count >> 1); ++i) {
 					if (lines[i].start.y <= p.y) {
