@@ -57,6 +57,10 @@ typedef pos pos1d;
 struct pos2d {
 	pos1d x, y;
 };
+struct line2d {
+	struct pos2d start;
+	size_t len;
+};
 
 struct connection {
 	idx a, b;
@@ -101,68 +105,173 @@ static void print_space(FILE *str, uint64_t count) {
 #endif
 
 static void print(FILE *str, struct data *data, uint64_t result,
-		struct pos2d *min, struct pos2d *max) {
+		struct line2d *lines, struct pos2d *min, struct pos2d *max) {
 	if (!do_print && !interactive)
 		return;
 	if (result || 1)
-		fprintf(str, "%sresult=%"I64"u\n%s", STEP_HEADER, result, STEP_BODY);
+		fprintf(str, "%sresult=%"I64"u\n", STEP_HEADER, result);
+	if (min)
+		fprintf(str, "min=(%"I64"d,%"I64"d)\n"
+		/*		   */"max=(%"I64"d,%"I64"d)\n"
+		/*		   */"len=(%"I64"d,%"I64"d)=%"I64"d\n%s", (int64_t) min->x,
+				(int64_t) min->y, (int64_t) max->x, (int64_t) max->y,
+				(int64_t) (max->x - min->x + 1),
+				(int64_t) (max->y - min->y + 1),
+				(int64_t) (max->x - min->x + 1) * (int64_t) (max->y - min->y + 1),
+				STEP_BODY);
+	else
+		fputs(STEP_BODY, str);
+	size_t line_len = 0;
+	size_t line_count = 0;
+	for (idx i = 0; i < data->pos_count; ++i) {
+		if (data->positions[i].x >= line_len)
+			line_len = data->positions[i].x + 1;
+		if (data->positions[i].y >= line_count)
+			line_count = data->positions[i].y + 1;
+	}
+	line_len++;
+	line_count++;
+	char *line = malloc(line_len * 2);
+	char *lastline = line + line_len;
+	memset(line, '.', line_len * 2);
+	for (int l = 0; l < line_count; ++l) {
+		for (idx i = 0; i < (data->pos_count >> 1); ++i) {
+			struct line2d *ld = lines + i;
+			if (ld->start.y == l) {
+				line[ld->start.x] = '#';
+				memset(line + ld->start.x + 1, 'X', ld->len - 2);
+				line[ld->start.x + ld->len - 1] = '#';
+			}
+		}
+		if (l % 1000 == 0 || line_count <= 1000) {
+			enum print_state {
+				ps_def, ps_green, ps_red, ps_mark
+			} ps = ps_def;
+			for (idx c = 0; c < line_len; c += (line_len > 1000 ? 1000 : 1)) {
+				if (line[c] == '#') {
+					if (ps != ps_red) {
+						ps = ps_red;
+						fputs(FC_RED, str);
+					}
+				} else if (min && l >= min->y && l <= max->y && c >= min->x
+						&& c <= max->x) {
+					if (ps != ps_mark) {
+						ps = ps_mark;
+						fputs(FC_CYAN, str);
+					}
+				} else if (line[c] == 'X') {
+					if (ps != ps_green) {
+						ps = ps_green;
+						fputs(FC_GREEN, str);
+					}
+				} else if (line[c] == '.') {
+					if (ps != ps_def) {
+						ps = ps_def;
+						fputs(RESET, str);
+					}
+				} else
+					abort();
+				fputc(line[c], str);
+			}
+			if (ps != ps_def)
+				fputs(RESET"\n", str);
+			else
+				fputc('\n', str);
+		}
+		for (idx i = 0; i < (data->pos_count >> 1); ++i) {
+			struct line2d *ld = lines + i;
+			if (ld->start.y == l) {
+				if (ld->len < 3)
+					abort();
+				if (lastline[ld->start.x + 1] == '.') {
+					line[ld->start.x] = 'X';
+					line[ld->start.x + ld->len - 1] = 'X';
+				} else {
+					memset(line + ld->start.x, '.', ld->len);
+					if (ld->start.x && lastline[ld->start.x - 1] != '.')
+						line[ld->start.x] = 'X';
+					if (ld->start.x + ld->len != line_len
+							&& lastline[ld->start.x + ld->len] != '.')
+						line[ld->start.x + ld->len - 1] = 'X';
+				}
+			}
+		}
+		memcpy(lastline, line, line_len);
+	}
 	fputs(interactive ? STEP_FINISHED : RESET, str);
-}
-
-static int pos2dcmp(const void *a, const void *b) {
-	const struct pos2d *pa = a, *pb = b;
-	if (pa->y < pb->y)
-		return -1;
-	if (pa->y > pb->y)
-		return 1;
-	if (pa->x < pb->x)
-		return -1;
-	if (pa->x > pb->x)
-		return 1;
-	return 0;
 }
 
 const char* solve(const char *path) {
 	struct data *data = read_data(path);
 	uint64_t result = 0;
-	qsort(data->positions, data->pos_count, sizeof(struct pos2d), pos2dcmp);
-	print(solution_out, data, result, NULL, NULL);
-	struct pos2d world_start = data->positions[0];
-	struct pos2d world_end = data->positions[data->pos_count - 1];
-	for (idx i = 0; i < data->pos_count; ++i) {
-		struct pos2d *p = data->positions + i;
-		if (p->x < world_start.x)
-			world_start.x = p->x;
-		if (p->x > world_end.x)
-			world_start.x = p->x;
+	if (data->pos_count & 1)
+		abort();
+	struct line2d *lines = malloc(sizeof(struct line2d) * data->pos_count >> 1);
+	for (idx i = 0; i < data->pos_count; i += 2) {
+		struct pos2d p = data->positions[i];
+		struct pos2d o = data->positions[i + 1];
+		if (p.y != o.y)
+			o = data->positions[i ? i - 1 : data->pos_count - 1];
+		lines[i >> 1].start.y = p.y;
+		if (p.x < o.x) {
+			lines[i >> 1].start.x = p.x;
+			lines[i >> 1].len = o.x - p.x + 1;
+		} else {
+			lines[i >> 1].start.x = o.x;
+			lines[i >> 1].len = p.x - o.x + 1;
+		}
 	}
+	print(solution_out, data, result, lines, NULL, NULL);
 	for (idx mini = 0; mini + 1 < data->pos_count; ++mini) {
 		struct pos2d minp = data->positions[mini];
 		for (idx maxi = mini + 1; maxi < data->pos_count; ++maxi) {
 			struct pos2d maxp = data->positions[maxi];
-			size_t area = maxp.y - minp.y + 1;
+			size_t area;
+			if (maxp.y > minp.y)
+				area = maxp.y - minp.y + 1;
+			else
+				area = minp.y - maxp.y + 1;
 			if (maxp.x > minp.x)
 				area *= maxp.x - minp.x + 1;
 			else
 				area *= minp.x - maxp.x + 1;
 			if (area <= result)
 				continue;
-			for (idx midi = mini + 1; midi < maxi; ++midi) {
-				struct pos2d midp = data->positions[maxi];
-				if (midp.y == maxp.y)
-					break;
-				if (midp.y == minp.y)
-					continue;
-				if ((midp.x > minp.x && midp.x < maxp.x)
-						|| (midp.x < minp.x && midp.x > maxp.x))
+			struct pos2d p = { minp.x < maxp.x ? minp.x : maxp.x,
+					minp.y < maxp.y ? minp.y : maxp.y };
+			struct pos2d endp = { minp.x > maxp.x ? minp.x : maxp.x,
+					minp.y > maxp.y ? minp.y : maxp.y };
+			if (part == 2) {
+				//(94654,50355) and (5556,67344) = 1513792010
+				if (p.x == 5556 && p.y == 50355
+						&& endp.x == 94654 && endp.y == 67344)
+					fputs("BREAK!\n", stderr);
+				_Bool is_inside = 0;
+				for (idx i = 0; i < (data->pos_count >> 1); ++i) {
+					if (lines[i].start.y <= p.y) {
+						pos1d start = lines[i].start.x;
+						pos1d end = lines[i].start.x + lines[i].len - 1;
+						if (start <= p.x && end > p.x)
+							is_inside ^= 1;
+					}
+					if (lines[i].start.y <= p.y || lines[i].start.y >= endp.y)
+						continue;
+					if (lines[i].start.x >= endp.x)
+						continue;
+					if (lines[i].start.x + lines[i].len - 1 <= p.x)
+						continue;
+					fputs(RESET, stdout);
+					goto inval;
+				}
+				if (!(is_inside & 1))
 					goto inval;
 			}
 			result = area;
-			print(solution_out, data, result, &minp, &maxp);
+			print(solution_out, data, result, lines, &p, &endp);
 			inval: ;
 		}
 	}
-	print(solution_out, data, result, NULL, NULL);
+	print(solution_out, data, result, lines, NULL, NULL);
 	free(data);
 	return u64toa(result);
 }

@@ -748,7 +748,7 @@ void interact(char *path, int force_interactive) {
 				}
 				errno = 0;
 			}
-			if (difftime(time(0), start) >= 1.0) {
+			if (difftime(time(0), start) >= 10.0) {
 				break;
 			} else {
 				struct timespec wait = { .tv_nsec = 5000000 /* 5 ms */};
