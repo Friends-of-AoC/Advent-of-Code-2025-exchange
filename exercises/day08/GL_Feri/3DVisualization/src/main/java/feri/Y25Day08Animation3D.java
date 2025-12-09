@@ -133,23 +133,50 @@ public class Y25Day08Animation3D {
 				connections.add(connection);
 				showWorld("add connection "+con);
 			}
-			List<Integer> circuitSizes = new ArrayList<>();
-			for (int cir=0; cir<circuitList.size(); cir++) {
-				int cirSize = circuitList.get(cir).size();
-				System.out.println("Circuit "+cir+": "+cirSize);
-				circuitSizes.add(cirSize);
+
+			for (int jb=0; jb<junctionBoxes.size(); jb++) {
+				int cir = findCircuit(jb);
+				if (cir == -1) {
+					junctionBoxes.set(jb, null);
+					showWorld("removed unconnected junctionBox "+jb);
+				}
 			}
-			System.out.println(circuitSizes);
-			Collections.sort(circuitSizes);
-			circuitSizes.sort((i1, i2) -> i2-i1);
-			System.out.println(circuitSizes);
-			long result = 1;
-			for (int i=0; i<3; i++) {
-				int cirSize = circuitSizes.get(i);
+
+			List<Integer> sortedCircuits = new ArrayList<>();
+			for (int cir=0; cir<circuitList.size(); cir++) {
+				if (circuitList.get(cir) == null) {
+					continue;
+				}
+				sortedCircuits.add(cir);
+			}
+			sortedCircuits.sort((c1, c2) -> circuitList.get(c1).size() - circuitList.get(c2).size());
+			for (int i=0; i<sortedCircuits.size()-3; i++) {
+				int cir = sortedCircuits.get(i);
+				removeCircuit(cir);
+				showWorld("remove circuit "+cir);
+			}
+			long result = 1L;
+			for (int i=sortedCircuits.size()-3; i<sortedCircuits.size(); i++) {
+				int cir = sortedCircuits.get(i);
+				int cirSize = circuitList.get(cir).size();
 				System.out.println("MAX["+(i+1)+"] "+cirSize);
 				result *= cirSize;
 			}
 			System.out.println("Result: "+result);
+		}
+		private void removeCircuit(int cir) {
+			Set<Integer> circuit = circuitList.get(cir);
+			for (int jb:circuit) {
+				Iterator<Connection> conIt = connections.iterator();
+				while (conIt.hasNext()) {
+					Connection con = conIt.next();
+					if (con.fromJB == jb || con.toJB == jb) {
+						conIt.remove();
+					}
+				}
+				junctionBoxes.set(jb, null);
+			}
+			circuitList.set(cir,  null);
 		}
 		public void connectAllCircuits() {
 			List<Connection> connections = new ArrayList<>();
@@ -165,13 +192,13 @@ public class Y25Day08Animation3D {
 			for (int i=0; i<junctionBoxes.size()-1; i++) {
 				Set<Integer> newCircuit = new HashSet<>();
 				newCircuit.add(i);
-				circuitList.add(newCircuit);
+				addCircuit(newCircuit);
 			}
 			for (int con=0; con<connections.size(); con++) {
 				Connection connection = connections.get(con);
 				System.out.println(con + ": "+connection.distance+"|"+junctionBoxes.get(connection.fromJB)+"->"+junctionBoxes.get(connection.toJB));
 				addCircuitSets(connection.fromJB, connection.toJB);
-				if (circuitList.size() == 1) {
+				if (circuitList.stream().filter(c -> c != null).count() == 1) {
 					Pos3D jb1 = junctionBoxes.get(connection.fromJB);
 					Pos3D jb2 = junctionBoxes.get(connection.toJB);
 					System.out.println(jb1+"->"+jb2);
@@ -180,6 +207,14 @@ public class Y25Day08Animation3D {
 				}
 			}
 		}
+		private void addCircuit(Set<Integer> newCircuit) {
+			for (int cir=0; cir<circuitList.size(); cir++) {
+				if (circuitList.get(cir) == null) {
+					circuitList.set(cir, newCircuit);
+				}
+			}
+			circuitList.add(newCircuit);
+		}
 		private void addCircuitSets(int jb1, int jb2) {
 			int cir1 = findCircuit(jb1);
 			int cir2 = findCircuit(jb2);
@@ -187,7 +222,7 @@ public class Y25Day08Animation3D {
 				Set<Integer> newCircuit = new HashSet<>();
 				newCircuit.add(jb1);
 				newCircuit.add(jb2);
-				circuitList.add(newCircuit);
+				addCircuit(newCircuit);
 			}
 			else if (cir1 == cir2) {
 				return;
@@ -199,14 +234,24 @@ public class Y25Day08Animation3D {
 				circuitList.get(cir2).add(jb1);
 			}
 			else {
-				Set<Integer> circuit1 = circuitList.get(cir1);
-				Set<Integer> circuit2 = circuitList.get(cir2);
-				circuit1.addAll(circuit2);
-				circuitList.remove(cir2);
+				int sourceCir = cir1;
+				int targetCir = cir2;
+				if (circuitList.get(targetCir).size() < circuitList.get(sourceCir).size()) {
+					int temp = sourceCir;
+					sourceCir = targetCir;
+					targetCir = temp;
+				}
+				Set<Integer> circuitTarget = circuitList.get(targetCir);
+				Set<Integer> circuitSource = circuitList.get(sourceCir);
+				circuitTarget.addAll(circuitSource);
+				circuitList.set(sourceCir, null);
 			}
 		}
 		private int findCircuit(int jb) {
 			for (int cir=0; cir<circuitList.size(); cir++) {
+				if (circuitList.get(cir) == null) {
+					continue;
+				}
 				if (circuitList.get(cir).contains(jb)) {
 					return cir;
 				}
@@ -218,8 +263,13 @@ public class Y25Day08Animation3D {
 			int type = 1;
 			List<Y25GUIOutput3D08.DDDObject> points = new ArrayList<>();
 			for (int i=0; i<junctionBoxes.size(); i++) {
+				if (junctionBoxes.get(i) == null) {
+					continue;
+				}
 				Pos3D jb = junctionBoxes.get(i);
-				int boxType = 10+type;
+				int cluster = findCircuit(i);
+				int color = (cluster == -1) ? 4 : (cluster%4);
+				int boxType = 10+color;
 				double boxSize = 2.0*scale;
 				Y25GUIOutput3D08.DDDObject point = new Y25GUIOutput3D08.DDDObject("jb"+i, jb.x, jb.y, jb.z, boxSize, boxType);
 				points.add(point);
@@ -235,7 +285,9 @@ public class Y25Day08Animation3D {
 				double y2 = jb2.y;
 				double z2 = jb2.z;
 				
-				int lineType = 30+type+2;
+				int cluster = findCircuit(connection.fromJB);
+				int color = (cluster == -1) ? 4 : (cluster%4);
+				int lineType = 30+color;
 				double lineSize = 1.0*scale;
 				Y25GUIOutput3D08.DDDObject line = new Y25GUIOutput3D08.DDDLineObject("con"+con, x1, y1, z1, x2, y2, z2, lineSize, lineType);
 				points.add(line);

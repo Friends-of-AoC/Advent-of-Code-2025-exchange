@@ -56,6 +56,8 @@ public class Y25GUIOutput3D08 extends Application {
 
 	static Y25GUIOutput3D08 instance = null;
 	
+	public static int ANIMATION_SPEED_MS = 1;
+	
 	public static class DDDObject {
 		String id;
 		double x;
@@ -118,11 +120,13 @@ public class Y25GUIOutput3D08 extends Application {
     Color green; 
     Color yellow; 
     Color blue; 
-    Color black; 
+    Color black;
+    Color gray;
     PhongMaterial matRed;
     PhongMaterial matGreen;
     PhongMaterial matYellow;
     PhongMaterial matBlue;
+    PhongMaterial matGray;
     PhongMaterial[] matColor;
 
 	
@@ -149,6 +153,7 @@ public class Y25GUIOutput3D08 extends Application {
         green  = new Color(0.1, 1.0, 0.1, 1.0); 
         blue   = new Color(0.1, 0.1, 1.0, 1.0); 
         yellow = new Color(1.0, 1.0, 0.1, 1.0); 
+        gray   = new Color(0.4, 0.4, 0.4, 1.0);
         black  = new Color(0.0, 0.0, 0.0, 1.0);
         
         matRed = new PhongMaterial();
@@ -163,8 +168,11 @@ public class Y25GUIOutput3D08 extends Application {
         matYellow = new PhongMaterial();
         matYellow.setDiffuseColor(yellow);
         matYellow.setSpecularColor(yellow);
+        matGray = new PhongMaterial();
+        matGray.setDiffuseColor(gray);
+        matGray.setSpecularColor(gray);
         
-        matColor = new PhongMaterial[] {matRed, matGreen, matBlue, matYellow};
+        matColor = new PhongMaterial[] {matRed, matGreen, matBlue, matYellow, matGray};
 	}
 	
 	public void setUseCachedNodes(boolean useCachedNodesValue) {
@@ -315,17 +323,17 @@ public class Y25GUIOutput3D08 extends Application {
 		float size = (float) (radiusScale * scale * dddo.size);
 		boolean doTranslate = true;
 		switch (dddo.type) {
-		case 0,1,2,3: {
+		case 0,1,2,3,4: {
 			PhongMaterial mat = matColor[dddo.type];
 			child = createBox(size, mat);
 			break;
 		}
-		case 10,11,12,13: {
+		case 10,11,12,13,14: {
 			PhongMaterial mat = matColor[dddo.type-10];
 			child = createSphere(size, mat);
 			break;
 		}
-		case 30,31,32,33: {
+		case 30,31,32,33,34: {
 			PhongMaterial mat = matColor[dddo.type -30];
 			DDDLineObject line = (DDDLineObject)dddo;
 			Point3D from = new Point3D(scale*(line.x-offsetX), scale*(line.y-offsetY), scale*(line.z-offsetZ));
@@ -349,19 +357,19 @@ public class Y25GUIOutput3D08 extends Application {
 		float size = (float) (radiusScale * scale * dddo.size);
 		boolean doTranslate = true;
 		switch (dddo.type) {
-		case 0,1,2,3: {
+		case 0,1,2,3,4: {
 			PhongMaterial mat = matColor[dddo.type];
 			setColor(child, mat);
 			setBoxSize(child, size);
 			break;
 		}
-		case 10,11,12,13: {
+		case 10,11,12,13,14: {
 			PhongMaterial mat = matColor[dddo.type-10];
 			setColor(child, mat);
 			setSphereSize(child, size);
 			break;
 		}
-		case 30,31,32,33: {
+		case 30,31,32,33,34: {
 			PhongMaterial mat = matColor[dddo.type-30];
 			setColor(child, mat);
 			DDDLineObject line = (DDDLineObject)dddo;
@@ -546,7 +554,7 @@ public class Y25GUIOutput3D08 extends Application {
     		return;
     	}
     	timer = new Timer();
-    	timer.scheduleAtFixedRate(new AnimationTask(), 250, 250);
+    	timer.scheduleAtFixedRate(new AnimationTask(), ANIMATION_SPEED_MS, ANIMATION_SPEED_MS);
 	}
 
 	private synchronized void asyncAnimation() {
