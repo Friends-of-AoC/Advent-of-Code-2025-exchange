@@ -102,47 +102,114 @@ static void print_space(FILE *str, uint64_t count) {
 }
 #endif
 
-static void print(FILE *str, struct data *data, uint64_t result) {
+static void print(FILE *str, struct data *data, uint64_t result,
+		struct mashine *m, uint64_t presses) {
 	if (!do_print && !interactive)
 		return;
-	if (result || 1)
+	if (m)
+		fprintf(str, "%sresult=%"I64"u\n"
+		/*		*/"presses=%"I64"u\n%s", STEP_HEADER, result, presses, STEP_BODY);
+	else if (result || 1)
 		fprintf(str, "%sresult=%"I64"u\n%s", STEP_HEADER, result, STEP_BODY);
+	if (m) {
+		fputc('[', str);
+		for (idx i = 0; i < m->indicator_size; ++i)
+			fputc(m->indicator_lights[i] ? '#' : '.', str);
+		fputc(']', str);
+		for (idx i = 0; i < m->button_size; ++i) {
+			fputs(" (", str);
+			struct button *b = m->buttons + i;
+			for (idx ii = 0; ii < b->wire_size; ++ii)
+				fprintf(str, ii ? ",%u" : "%u", (unsigned) b->wires[ii]);
+			fputc(')', str);
+		}
+		fputs(" {", str);
+		for (idx i = 0; i < m->joltage_size; ++i)
+			fprintf(str, i ? ",%u" : "%u",
+					(unsigned) m->joltage_requirements[i]);
+		fputs("}\n", str);
+	}
 	fputs(interactive ? STEP_FINISHED : RESET, str);
 }
 
-static int cant_solve(struct mashine *m, struct button *btn, size_t btn_size,
-		uint64_t presses) {
+static uint64_t cant_solve(struct mashine *m, struct button *btn,
+		size_t btn_size, uint64_t presses) {
 	if (!presses) {
-		for (idx i = 0; i < m->indicator_size; ++i)
-			if (m->indicator_lights[i])
-				return 119;
+		if (part == 1) {
+			for (idx i = 0; i < m->indicator_size; ++i)
+				if (m->indicator_lights[i])
+					return 119;
+		}
 		return 0;
 	}
 	for (idx i = 0; i < btn_size; ++i) {
 		struct button *b = btn + i;
-		for (idx bi = 0; bi < b->wire_size; ++bi)
-			m->indicator_lights[b->wires[bi]] ^= 1;
-		int res = cant_solve(m, btn + i + 1, btn_size - i - 1, presses - 1);
-		for (idx bi = 0; bi < b->wire_size; ++bi)
-			m->indicator_lights[b->wires[bi]] ^= 1;
-		if (!res)
-			return 0;
+		int res;
+		if (part == 1) {
+			for (idx bi = 0; bi < b->wire_size; ++bi)
+				m->indicator_lights[b->wires[bi]] ^= 1;
+			res = cant_solve(m, btn + i + 1, btn_size - i - 1, presses - 1);
+			for (idx bi = 0; bi < b->wire_size; ++bi)
+				m->indicator_lights[b->wires[bi]] ^= 1;
+			if (!res)
+				return 0;
+		} else {
+			uint64_t maxp = presses / b->wire_size;
+			for (idx bi = 0; bi < b->wire_size; ++bi)
+				if (m->joltage_requirements[b->wires[bi]] < maxp)
+					maxp = m->joltage_requirements[b->wires[bi]];
+			if (maxp) {
+				for (idx bi = 0; bi < b->wire_size; ++bi)
+					m->joltage_requirements[b->wires[bi]] -= maxp;
+				for (uint64_t p = maxp; p != 0; --p) {
+					res = cant_solve(m, btn + i + 1, btn_size - i - 1,
+							presses - p * b->wire_size);
+					if (res != UINT64_MAX) {
+						for (idx bi = 0; bi < b->wire_size; ++bi)
+							m->joltage_requirements[b->wires[bi]] += p;
+						return res + p;
+					}
+					for (idx bi = 0; bi < b->wire_size; ++bi)
+						++m->joltage_requirements[b->wires[bi]];
+				}
+			}
+		}
 	}
-	return 124;
+	return UINT64_MAX;
+}
+
+static int btncmp(const void *a, const void *b) {
+	const struct button *ba = a, *bb = b;
+	if (ba->wire_size > bb->wire_size)
+		return -1;
+	else if (ba->wire_size < bb->wire_size)
+		return 1;
+	return 0;
 }
 
 const char* solve(const char *path) {
 	struct data *data = read_data(path);
 	uint64_t result = 0;
-	print(solution_out, data, result);
+	print(solution_out, data, result, NULL, 0);
 	for (idx i = 0; i < data->mashine_count; ++i) {
-		uint64_t presses = 1;
 		struct mashine *m = data->mashines + i;
-		for (; cant_solve(m, m->buttons, m->button_size, presses); ++presses)
-			;
-		result += presses;
+		uint64_t press = 1;
+		if (part == 1) {
+			for (; cant_solve(m, m->buttons, m->button_size, press); ++press)
+				;
+		} else {
+			qsort(m->buttons, m->button_size, sizeof(struct button), btncmp);
+			uint64_t max_presses = 0;
+			for (idx i = 0; i < m->joltage_size; ++i)
+				max_presses += m->joltage_requirements[i];
+			press = cant_solve(m, m->buttons, m->button_size, max_presses);
+			if (press == UINT64_MAX)
+				abort();
+		}
+		result += press;
+		print(solution_out, data, result, m, press);
 	}
-	print(solution_out, data, result);
+	print(solution_out, data, result, NULL, 0);
 	free(data);
 	return u64toa(result);
 }
