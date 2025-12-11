@@ -10,7 +10,7 @@ import java.util.Set;
 /**
  * see: https://adventofcode.com/2025/day/09
  */
-public class Y25Day09b {
+public class Y25Day09Part2 {
 	
 	public static record InputData(int x, int y) {}
 
@@ -219,13 +219,14 @@ public class Y25Day09b {
 	
 
 	public static void main(String[] args) throws FileNotFoundException {
-		System.out.println("--- PART I ---");
+//		System.out.println("--- PART I ---");
 //		mainPart1("exercises/day09/Feri/input-example.txt");
-		mainPart1("exercises/day09/Feri/input.txt");  
-		System.out.println("---------------");
+//		mainPart1("exercises/day09/Feri/input.txt");  
+//		System.out.println("---------------");
 		System.out.println("--- PART II ---");
 //		mainPart2("exercises/day09/Feri/input-example.txt");
-		mainPart2("exercises/day09/Feri/input.txt");   
+//		mainPart2("exercises/day09/Feri/input.txt");   
+		mainPart2("exercises/day09/Feri/data.txt");   
 		System.out.println("---------------");    // 
 	}
 	
