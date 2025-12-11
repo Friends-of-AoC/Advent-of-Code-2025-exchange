@@ -55,11 +55,20 @@ typedef ssize_t pos;
 #define NUM_MAX UINT16_MAX
 typedef uint16_t num;
 
+struct count_result {
+	uint64_t dac_count;
+	uint64_t fft_count;
+	uint64_t dacfft_count;
+	uint64_t out_count;
+};
+
 struct device {
 	char *name;
 	char **out_names;
 	struct device **out_devs;
 	size_t out_size;
+	unsigned has_result;
+	struct count_result count_res;
 };
 
 struct data {
@@ -106,25 +115,46 @@ static void print(FILE *str, struct data *data, uint64_t result) {
 	fputs(interactive ? STEP_FINISHED : RESET, str);
 }
 
-static uint64_t count(struct device *src) {
-	uint64_t result = 0;
+static struct count_result count(struct device *src, struct device *dac, struct device *fft) {
+	if (src->has_result)
+		return src->count_res;
 	for (idx i = 0; i < src->out_size; ++i)
-		if (src->out_devs[i])
-			result += count(src->out_devs[i]);
-		else if (!strcmp("out", src->out_names[i]))
-			++result;
-	return result;
+		if (src->out_devs[i]) {
+			struct count_result res = count(src->out_devs[i], dac, fft);
+			src->count_res.dac_count += res.dac_count;
+			src->count_res.fft_count += res.fft_count;
+			src->count_res.dacfft_count += res.dacfft_count;
+			src->count_res.out_count += res.out_count;
+		} else
+			++src->count_res.out_count;
+	if (src == dac) {
+		src->count_res.dacfft_count = src->count_res.fft_count;
+		src->count_res.dac_count = src->count_res.out_count;
+	} else if (src == fft) {
+		src->count_res.dacfft_count = src->count_res.dac_count;
+		src->count_res.fft_count = src->count_res.out_count;
+	}
+	if (src->has_result)
+		abort();
+	src->has_result = 1;
+	return src->count_res;
 }
 
 const char* solve(const char *path) {
 	struct data *data = read_data(path);
 	uint64_t result = 0;
-	struct device *you = NULL;
+	struct device *you = NULL, *fft = NULL, *dac = NULL;
 	for (idx i = 0; i < data->devices_count; ++i) {
 		struct device *d = data->devices + i;
 		d->out_devs = calloc(d->out_size, sizeof(struct device*));
-		if (!strcmp("you", d->name))
+		if (!strcmp(part == 1 ? "you" : "svr", d->name))
 			you = d;
+		if (!strcmp("dac", d->name))
+			dac = d;
+		if (!strcmp("fft", d->name))
+			fft = d;
+		if (!strcmp("out", d->name))
+			abort();
 		for (idx oi = 0; oi < d->out_size; ++oi) {
 			char *name = d->out_names[oi];
 			for (idx di = 0; di < data->devices_count; ++di) {
@@ -134,13 +164,20 @@ const char* solve(const char *path) {
 				}
 			}
 			if (!d->out_devs[oi] && strcmp("out", name))
-				(printf("the device %s does not exists\n", name), abort());
+				abort();
 		}
 	}
-	if (!you)
+	if (!you || !dac || !fft)
 		abort();
+	if (part == 1) {
+		dac = NULL;
+		fft = NULL;
+	}
 	print(solution_out, data, result);
-	result = count(you);
+	if (part == 1)
+		result = count(you, dac, fft).out_count;
+	else
+		result = count(you, dac, fft).dacfft_count;
 	print(solution_out, data, result);
 	free(data);
 	return u64toa(result);
@@ -158,6 +195,8 @@ static struct data* parse_line(struct data *data, char *line) {
 		data->devices_alloc += 64;
 		data->devices = reallocarray(data->devices, data->devices_alloc,
 				sizeof(struct device));
+		memset(data->devices + data->devices_count, 0,
+				sizeof(struct device) * 64);
 	}
 	line = strdup(line);
 	char *end;
