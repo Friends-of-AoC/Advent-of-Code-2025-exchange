@@ -10,3 +10,4 @@ exercises/day03/carlos/Day03
 *.iml
 .idea
 out
+.metals/
