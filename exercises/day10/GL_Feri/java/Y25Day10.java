@@ -200,8 +200,8 @@ public class Y25Day10 {
 		mainPart1("exercises/day10/Feri/input.txt");  
 		System.out.println("---------------");
 //		System.out.println("--- PART II ---");
-//		mainPart2("exercises/day10/Feri/input-example.txt");
-		mainPart2("exercises/day10/Feri/input.txt");   
+		mainPart2("exercises/day10/Feri/input-example.txt");
+//		mainPart2("exercises/day10/Feri/input.txt");   
 //		System.out.println("---------------");    // 
 	}
 	
