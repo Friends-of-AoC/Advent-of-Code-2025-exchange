@@ -1,0 +1,6 @@
+.scala-build/
+.bsp/
+.metals/
+.scala-jvmopts
+*.class
+input.txt
