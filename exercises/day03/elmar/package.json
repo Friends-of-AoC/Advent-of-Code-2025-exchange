@@ -1,0 +1,13 @@
+{
+  "name": "aoc-day03",
+  "type": "module",
+  "scripts": {
+    "part1": "npx ts-node solution.ts",
+    "part2": "npx ts-node solution_part2.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}
