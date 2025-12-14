@@ -1,9 +1,24 @@
 /*
- * see: https://wiki.freitagsrunde.org/Javakurs/%C3%9Cbungsaufgaben/Gau%C3%9F-Algorithmus/Musterloesung
  * @author Sebastian Peuser <c-line AT mailbox.tu-berlin DOT de>
  */
-public class Gauss {
-	public static void main(String[] args) {
+
+public class GaussX {
+
+	
+	public static boolean FIX = true;
+	
+	public static class LinearDependentException extends Exception {
+		public int row;
+		public LinearDependentException(int row) {
+			super("Gleichungssystem nicht eindeutig loesbar! (Zeile " + row + " ist linear abhaengig)");
+			this.row = row;
+		}
+		public int getRow() {
+			return row;
+		}
+	}
+	
+	public static void main(String[] args) throws GaussX.LinearDependentException {
 		double[][] matrix = { { 1, 1, 1 }, { 43, 0, 31 }, { 4, 0, 7 } };
 		double[] vector = { 2, 4, 8 };
 
@@ -19,13 +34,18 @@ public class Gauss {
 	 * Gauss-Jordan-Algorithmus nur fuer eindeutige Gleichungssysteme geeignet
 	 * (andernfalls wird NULL zurueckgegeben) matrix[row][column]
 	 */
-	public static double[] getSolution(double[][] matrix, double[] vector, boolean printSteps) {
+	public static double[] getSolution(double[][] matrix, double[] vector, boolean printSteps) throws LinearDependentException {
 		// Das Gleichungssystem hat keine eindeutige Loesung!
 		if (matrix.length < matrix[0].length) {
 			System.out.println("Gleichungssystem nicht eindeutig loesbar!");
 			return null;
 		}
 
+		int[] origLineNumbers = new int[matrix.length];
+		for (int i = 0; i < matrix.length; i++) {
+			origLineNumbers[i] = i;
+		}
+		
 		// Merken der Spalte, welche eine Zahl ungleich null besitzt
 		int tmpColumn = -1;
 
@@ -61,21 +81,29 @@ public class Gauss {
 							printStep(matrix, vector);
 						}
 
-						System.out.println("Gleichungssystem besitzt keine Loesung!");
-						return null;
+						throw new LinearDependentException(origLineNumbers[line]);
+//						return null;
 					}
 				}
 				// Nullzeile(n) vorhanden -> Ist das System noch eindeutig
 				// loesbar?
 				if (matrix[0].length - 1 >= line) {
+					
+					if (FIX) {
+						matrix[line][line] = 1;
+						tmpColumn = line;
+					}
+					else {
 					// Wenn die Zwischenschritte ausgegeben werden sollen
 					if (printSteps) {
 						printStep(matrix, vector);
 					}
 
 					// System nicht eindeutig loesbar.
-					System.out.println("Gleichungssystem nicht eindeutig loesbar!");
-					return null;
+					throw new LinearDependentException(origLineNumbers[line]);
+//					return null;
+					}					
+					
 				}
 				break;
 			}
@@ -93,7 +121,7 @@ public class Gauss {
 
 						// Vertauschen von Zeilen -> matrix[line][tmpColumn]
 						// wird dann ungleich null
-						swapTwoLines(line, row, matrix, vector);
+						swapTwoLines(line, row, matrix, vector, origLineNumbers);
 						break;
 					}
 				}
@@ -163,7 +191,7 @@ public class Gauss {
 	/*
 	 * Hier werden einfach zwei Zeilen vertrauscht
 	 */
-	private static void swapTwoLines(int rowOne, int rowTwo, double[][] matrix, double[] vector) {
+	private static void swapTwoLines(int rowOne, int rowTwo, double[][] matrix, double[] vector, int[] origLineNumbers) {
 		double[] tmpLine;
 		double tmpVar;
 
@@ -175,6 +203,10 @@ public class Gauss {
 
 		matrix[rowTwo] = tmpLine;
 		vector[rowTwo] = tmpVar;
+		
+		int tmpOrig = origLineNumbers[rowOne];
+		origLineNumbers[rowOne] = origLineNumbers[rowTwo];
+		origLineNumbers[rowTwo] = tmpOrig;
 	}
 
 	/*

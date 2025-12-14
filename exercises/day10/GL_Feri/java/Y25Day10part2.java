@@ -176,7 +176,7 @@ public class Y25Day10part2 {
 			sumTargetJoltages += joltage;
 			startJoltages.add(0);
 		}
-		buttons.sort((a,b) -> Integer.compare(b.size(), a.size()));
+//		buttons.sort((a,b) -> Integer.compare(b.size(), a.size()));
 		System.out.println("solve: "+targetJoltages+", buttons: "+buttons);
 		int maxJoltagePerClick = buttons.get(0).size();
 		JoltagesState initialState = new JoltagesState(
@@ -258,7 +258,8 @@ public class Y25Day10part2 {
 //		mainPart1("exercises/day10/Feri/input.txt");  
 		System.out.println("---------------");
 //		System.out.println("--- PART II ---");
-		mainPart2("exercises/day10/Feri/input-example.txt");
+//		mainPart2("exercises/day10/Feri/input-example.txt");
+		mainPart2("exercises/day10/Feri/input-example-5.txt");
 //		mainPart2("exercises/day10/Feri/input.txt");   
 //		System.out.println("---------------");    // 
 	}

@@ -2,7 +2,7 @@
  * see: https://wiki.freitagsrunde.org/Javakurs/%C3%9Cbungsaufgaben/Gau%C3%9F-Algorithmus/Musterloesung
  * @author Sebastian Peuser <c-line AT mailbox.tu-berlin DOT de>
  */
-public class Gauss {
+public class GaussNeu {
 	public static void main(String[] args) {
 		double[][] matrix = { { 1, 1, 1 }, { 43, 0, 31 }, { 4, 0, 7 } };
 		double[] vector = { 2, 4, 8 };
