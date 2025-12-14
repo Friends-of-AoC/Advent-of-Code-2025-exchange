@@ -7,16 +7,46 @@ public class MyLGS {
 	public static boolean DEBUG = false;
 	
 	
+	public static enum CLD_STATUS {
+		OK,
+		DEPENDENT_ROW,
+		INCONSISTENT_SYSTEM,
+		UNKNOWN
+	}
+	
+	public static record CLDResult(CLD_STATUS status, int dependentRow, int dependentCol, double[] solution) {
+		public static CLDResult ok(double[] solution) {
+			return new CLDResult(CLD_STATUS.OK, -1, -1, solution);
+		}
+		public static CLDResult inconsistent() {
+			return new CLDResult(CLD_STATUS.INCONSISTENT_SYSTEM, -1, -1, null);
+		}
+		public static CLDResult unknown() {
+			return new CLDResult(CLD_STATUS.UNKNOWN, -1, -1, null);
+		}
+		public static CLDResult dependentRow(int row, int col) {
+			return new CLDResult(CLD_STATUS.DEPENDENT_ROW, row, col, null);
+		}
+		public boolean isInconsistent() {
+			return status == CLD_STATUS.INCONSISTENT_SYSTEM;
+		}
+		public boolean hasDependentRow() {
+			return status == CLD_STATUS.DEPENDENT_ROW;
+		}
+		public boolean hasSolution() {
+			return status == CLD_STATUS.OK;
+		}
+		}
+	
 	public static boolean isZero(double d) {
 		return Math.abs(d) < 1e-9;
 	}
 	public static boolean nearlyEqual(double d1, double d2) {
 		return Math.abs(d2-d1) < 1e-9;
 	}
-	
-	public static int checkLinearDependenies(double[][] matrix, double[] vector) {
-		
-		showMatrix("Initial matrix", matrix, vector);
+
+
+	public static CLDResult solve(double[][] matrix, double[] vector) {
 		
 		int numRows = matrix.length;
 		int numCols = matrix[0].length;
@@ -54,12 +84,12 @@ public class MyLGS {
 					if (!isZero(vector[row])) {
 						// inconsistent system
 						showMatrix("found inconsistent row "+(row+1), matrix, vector);
-						return -2;
+						return CLDResult.inconsistent();
 					}
 					showMatrix("found dependent row", matrix, vector);
-					return origRows[row];
+					return CLDResult.dependentRow(origRows[row], col);
 				}
-				return origRows[row];
+				return CLDResult.dependentRow(origRows[row], col);
 			}
 
 			// normalize current row to 1.0
@@ -92,12 +122,28 @@ public class MyLGS {
 		if (numCols < numRows) {
 			// dependent row found
 			showMatrix("more rows than cols", matrix, vector);
-			return origRows[numCols];
+			return CLDResult.dependentRow(origRows[numCols], -1);
 		}
-		return -1;
+		
+		double[] solution = calcSolution(matrix, vector);
+		
+		return CLDResult.ok(solution);
 	}
 
 
+	
+	private static double[] calcSolution(double[][] matrix, double[] vector) {
+		int size = matrix.length;
+		double[] solution = new double[size];
+		for (int row=size-1; row>=0; row--) {
+			double sum = vector[row];
+			for (int col=row+1; col<size; col++) {
+				sum -= matrix[row][col] * solution[col];
+			}
+			solution[row] = sum;
+		}
+		return solution;
+	}
 	private static void swapRows(int row1, int row2, double[][] matrix, double[] vector, int[] origRows) {
 		double[] tmpRow = matrix[row1];
 		matrix[row1] = matrix[row2];

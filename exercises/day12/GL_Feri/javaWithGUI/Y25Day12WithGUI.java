@@ -297,6 +297,16 @@ public class Y25Day12WithGUI {
 		
 		public Set<Pos> getPositions(int state, Pos pos) {
 			Set<Pos> shapePoints = points.get(state);
+			Set<Pos> result = new HashSet<>();
+			pos = pos.move(-1,-1);
+			for (Pos p:shapePoints) {
+				result.add(pos.move(p));
+			}
+			return result;
+		}
+		
+		public Set<Pos> getOffsetPositions(int state, Pos pos) {
+			Set<Pos> shapePoints = points.get(state);
 			Pos shapeOffset = offsets.get(state);
 			pos = pos.move(shapeOffset);
 			Set<Pos> result = new HashSet<>();
@@ -343,7 +353,9 @@ public class Y25Day12WithGUI {
 	
 	
 	public static record PlacedShape(int shapeId, int state, int x, int y, double measure) {}
-	
+
+	static final String[] COLOR_MAP = new String[] {"°b0;", "°b1;", "°b2;", "°b3;", "°b4;", "°b5;", "°b6;"};
+
 	public static class World {
 		Map<Integer, Shape> shapes;
 		int[] shapeIDCounts;
@@ -352,6 +364,8 @@ public class Y25Day12WithGUI {
 		int height;
 		int[][] bcgrid;
 		int[] bitCodeWeights;
+		int[][] colorGrid;
+		int nextColor;
 		public World() {
 			shapes = new HashMap<>();
 		}
@@ -407,6 +421,7 @@ public class Y25Day12WithGUI {
 		}
 		public boolean solve(int width, int height, List<Integer> shapeIds) {
 			prepare(width, height, shapeIds);
+			showBCGrid("init");
 			while (sum(shapeIDCounts) > 0) {
 				PlacedShape bestPS = null;
 				for (int shapeId=0; shapeId<shapeIDCounts.length; shapeId++) {
@@ -443,6 +458,10 @@ public class Y25Day12WithGUI {
 					}
 					bcgrid[gy][gx] &= shape.getGridMask(ps.state, dx, dy);
 				}
+			}
+			nextColor = (nextColor % 6) + 1;
+			for (Pos p:shape.getPositions(ps.state, new Pos(ps.x, ps.y))) {
+				colorGrid[p.y][p.x] = nextColor;
 			}
 		}
 		public void calcBitCodeWeights() {
@@ -515,11 +534,18 @@ public class Y25Day12WithGUI {
 			System.out.println(result.toString());
 		}
 		private void showBCGrid(String title) {
+			String lastColor = COLOR_MAP[0];
 			StringBuilder result = new StringBuilder();
 			result.append(title).append("\n");
 			for (int y=0; y<height; y++) {
 				for (int x=0; x<width; x++) {
-					if ((bcgrid[y][x] & 0b000010000)==0) {
+					int color = colorGrid[y][x];
+					String colorCode = COLOR_MAP[color];
+					if (!colorCode.equals(lastColor)) {
+						result.append(colorCode);
+						lastColor = colorCode;
+					}
+					if (color != 0) {
 						result.append('#');
 					} else {
 						result.append('.');
@@ -540,6 +566,7 @@ public class Y25Day12WithGUI {
 			calcBitCodeWeights();
 			grid = new int[height][width];
 			initBCGrid();
+			colorGrid = new int[height][width];
 		}
 
 	}
@@ -577,7 +604,8 @@ public class Y25Day12WithGUI {
 
 	public static void main(String[] args) throws FileNotFoundException {
 		System.out.println("--- PART I ---");
-		mainPart1("exercises/day12/Feri/input-example.txt");
+//		mainPart1("exercises/day12/Feri/input-example.txt");
+		mainPart1("exercises/day12/Feri/input-example-2.txt");
 //		mainPart1("exercises/day12/Feri/input.txt");            // < 1000  
 		System.out.println("---------------");
 //		System.out.println("--- PART II ---");
